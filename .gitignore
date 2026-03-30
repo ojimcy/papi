@@ -1,0 +1,5 @@
+.env
+zapi
+*.exe
+*.test
+.DS_Store
