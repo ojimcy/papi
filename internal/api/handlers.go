@@ -22,6 +22,18 @@ func NewHandlers(c *cache.Cache, s store.Store) *Handlers {
 	return &Handlers{cache: c, store: s}
 }
 
+func (h *Handlers) GetPairs(w http.ResponseWriter, r *http.Request) {
+	pairs := h.cache.Pairs()
+	result := make([]map[string]any, 0, len(pairs))
+	for _, pair := range pairs {
+		result = append(result, map[string]any{
+			"pair":  pair,
+			"tiers": h.cache.Tiers(pair),
+		})
+	}
+	writeJSON(w, http.StatusOK, result)
+}
+
 func (h *Handlers) GetRates(w http.ResponseWriter, r *http.Request) {
 	pair := r.URL.Query().Get("pair")
 	if pair == "" {
@@ -45,7 +57,21 @@ func (h *Handlers) GetRates(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	writeJSON(w, http.StatusOK, rate)
+	resp := map[string]any{
+		"pair":        rate.Pair,
+		"amount_tier": rate.AmountTier,
+		"buy_rate":    rate.BuyRate,
+		"sell_rate":   rate.SellRate,
+		"mid_rate":    rate.MidRate,
+		"spread":      rate.Spread,
+		"spread_pct":  rate.SpreadPct,
+		"base_rate":   rate.BaseRate,
+		"source":      rate.Source,
+		"timestamp":   rate.Timestamp,
+		"stale":       time.Since(rate.Timestamp) > 5*time.Minute,
+	}
+
+	writeJSON(w, http.StatusOK, resp)
 }
 
 func (h *Handlers) GetHistory(w http.ResponseWriter, r *http.Request) {
@@ -93,9 +119,14 @@ func (h *Handlers) GetHistory(w http.ResponseWriter, r *http.Request) {
 		offset = o
 	}
 
+	tier := r.URL.Query().Get("tier")
+	if tier == "" {
+		tier = "aggregate"
+	}
+
 	since := time.Now().Add(-duration)
 
-	rates, err := h.store.GetHistory(r.Context(), pair, since, limit, offset)
+	rates, err := h.store.GetHistory(r.Context(), pair, since, tier, limit, offset)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "failed to fetch history")
 		return
@@ -103,6 +134,7 @@ func (h *Handlers) GetHistory(w http.ResponseWriter, r *http.Request) {
 
 	writeJSON(w, http.StatusOK, map[string]any{
 		"pair":   pair,
+		"tier":   tier,
 		"period": period,
 		"limit":  limit,
 		"offset": offset,

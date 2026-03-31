@@ -31,13 +31,13 @@ func (m *memoryStore) SaveRate(_ context.Context, rate model.ComputedRate) error
 	return nil
 }
 
-func (m *memoryStore) GetHistory(_ context.Context, pair string, since time.Time, limit, offset int) ([]model.ComputedRate, error) {
+func (m *memoryStore) GetHistory(_ context.Context, pair string, since time.Time, tier string, limit, offset int) ([]model.ComputedRate, error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
 	var filtered []model.ComputedRate
 	for _, r := range m.rates {
-		if r.Pair == pair && r.AmountTier == "aggregate" && !r.Timestamp.Before(since) {
+		if r.Pair == pair && r.AmountTier == tier && !r.Timestamp.Before(since) {
 			filtered = append(filtered, r)
 		}
 	}
@@ -125,6 +125,10 @@ func (m *memoryStore) DeactivateSubscriber(_ context.Context, id string) error {
 	return fmt.Errorf("subscriber %s not found", id)
 }
 
+func (m *memoryStore) Ping(_ context.Context) error {
+	return nil
+}
+
 func (m *memoryStore) Close() error {
 	return nil
 }
@@ -151,7 +155,7 @@ func TestMemoryStore_SaveAndGetHistory(t *testing.T) {
 		t.Fatalf("SaveRate: %v", err)
 	}
 
-	got, err := s.GetHistory(ctx, "USDT-NGN", now.Add(-time.Minute), 10, 0)
+	got, err := s.GetHistory(ctx, "USDT-NGN", now.Add(-time.Minute), "aggregate", 10, 0)
 	if err != nil {
 		t.Fatalf("GetHistory: %v", err)
 	}
@@ -180,7 +184,7 @@ func TestMemoryStore_GetHistory_Pagination(t *testing.T) {
 		}
 	}
 
-	got, err := s.GetHistory(ctx, "USDT-NGN", base.Add(-time.Minute), 2, 1)
+	got, err := s.GetHistory(ctx, "USDT-NGN", base.Add(-time.Minute), "aggregate", 2, 1)
 	if err != nil {
 		t.Fatalf("GetHistory: %v", err)
 	}
@@ -214,7 +218,7 @@ func TestMemoryStore_GetHistory_FiltersByPair(t *testing.T) {
 		}
 	}
 
-	got, err := s.GetHistory(ctx, "USDT-GHS", now.Add(-time.Minute), 10, 0)
+	got, err := s.GetHistory(ctx, "USDT-GHS", now.Add(-time.Minute), "aggregate", 10, 0)
 	if err != nil {
 		t.Fatalf("GetHistory: %v", err)
 	}

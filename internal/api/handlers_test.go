@@ -22,7 +22,7 @@ type testStore struct {
 }
 
 func (m *testStore) SaveRate(_ context.Context, _ model.ComputedRate) error { return nil }
-func (m *testStore) GetHistory(_ context.Context, _ string, _ time.Time, limit, offset int) ([]model.ComputedRate, error) {
+func (m *testStore) GetHistory(_ context.Context, _ string, _ time.Time, _ string, limit, offset int) ([]model.ComputedRate, error) {
 	if m.historyErr != nil {
 		return nil, m.historyErr
 	}
@@ -52,9 +52,41 @@ func (m *testStore) GetSubscriberByKey(_ context.Context, apiKey string) (*model
 	}
 	return nil, fmt.Errorf("not found")
 }
-func (m *testStore) Close() error { return nil }
+func (m *testStore) Ping(_ context.Context) error { return nil }
+func (m *testStore) Close() error                 { return nil }
 
 var _ store.Store = (*testStore)(nil)
+
+func TestGetPairs(t *testing.T) {
+	c := cache.New()
+	c.Set("USDT_NGN", "aggregate", model.ComputedRate{Pair: "USDT_NGN"})
+	c.Set("USDT_NGN", "500000", model.ComputedRate{Pair: "USDT_NGN"})
+
+	s := &testStore{subscriber: &model.Subscriber{APIKey: "test-key"}}
+	router := NewRouter(c, s)
+
+	req := httptest.NewRequest("GET", "/v1/pairs", nil)
+	req.Header.Set("X-API-Key", "test-key")
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d: %s", w.Code, w.Body.String())
+	}
+
+	var resp []map[string]any
+	json.NewDecoder(w.Body).Decode(&resp)
+	if len(resp) != 1 {
+		t.Fatalf("expected 1 pair, got %d", len(resp))
+	}
+	if resp[0]["pair"] != "USDT_NGN" {
+		t.Errorf("expected USDT_NGN, got %v", resp[0]["pair"])
+	}
+	tiers, ok := resp[0]["tiers"].([]any)
+	if !ok || len(tiers) != 2 {
+		t.Errorf("expected 2 tiers, got %v", resp[0]["tiers"])
+	}
+}
 
 func TestGetRates_Aggregate(t *testing.T) {
 	c := cache.New()
@@ -430,5 +462,61 @@ func TestAuthMiddleware_CacheExpiry(t *testing.T) {
 	handler.ServeHTTP(w, req)
 	if w.Code != 401 {
 		t.Errorf("expected 401 after TTL, got %d", w.Code)
+	}
+}
+
+func TestRequestID_Present(t *testing.T) {
+	s := &testStore{subscriber: &model.Subscriber{APIKey: "test-key"}}
+	router := NewRouter(cache.New(), s)
+
+	req := httptest.NewRequest("GET", "/health", nil)
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	if w.Header().Get("X-Request-Id") == "" {
+		t.Error("expected X-Request-Id header in response")
+	}
+}
+
+func TestGetHistory_WithTier(t *testing.T) {
+	history := []model.ComputedRate{
+		{Pair: "USDT_NGN", AmountTier: "500000", MidRate: 1414, Timestamp: time.Now()},
+	}
+	s := &testStore{subscriber: &model.Subscriber{APIKey: "test-key"}, history: history}
+	router := NewRouter(cache.New(), s)
+
+	req := httptest.NewRequest("GET", "/v1/rates/history?pair=USDT_NGN&tier=500000", nil)
+	req.Header.Set("X-API-Key", "test-key")
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d: %s", w.Code, w.Body.String())
+	}
+
+	var resp map[string]any
+	json.NewDecoder(w.Body).Decode(&resp)
+	if resp["tier"] != "500000" {
+		t.Errorf("expected tier 500000, got %v", resp["tier"])
+	}
+}
+
+func TestGetHistory_DefaultTier(t *testing.T) {
+	s := &testStore{subscriber: &model.Subscriber{APIKey: "test-key"}}
+	router := NewRouter(cache.New(), s)
+
+	req := httptest.NewRequest("GET", "/v1/rates/history?pair=USDT_NGN", nil)
+	req.Header.Set("X-API-Key", "test-key")
+	w := httptest.NewRecorder()
+	router.ServeHTTP(w, req)
+
+	if w.Code != http.StatusOK {
+		t.Fatalf("expected 200, got %d", w.Code)
+	}
+
+	var resp map[string]any
+	json.NewDecoder(w.Body).Decode(&resp)
+	if resp["tier"] != "aggregate" {
+		t.Errorf("expected default tier aggregate, got %v", resp["tier"])
 	}
 }

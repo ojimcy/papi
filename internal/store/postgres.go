@@ -32,6 +32,10 @@ func NewPostgresStore(ctx context.Context, databaseURL string) (*PostgresStore, 
 	return &PostgresStore{pool: pool}, nil
 }
 
+func (s *PostgresStore) Ping(ctx context.Context) error {
+	return s.pool.Ping(ctx)
+}
+
 func (s *PostgresStore) Close() error {
 	s.pool.Close()
 	return nil
@@ -47,14 +51,14 @@ func (s *PostgresStore) SaveRate(ctx context.Context, rate model.ComputedRate) e
 	return err
 }
 
-func (s *PostgresStore) GetHistory(ctx context.Context, pair string, since time.Time, limit, offset int) ([]model.ComputedRate, error) {
+func (s *PostgresStore) GetHistory(ctx context.Context, pair string, since time.Time, tier string, limit, offset int) ([]model.ComputedRate, error) {
 	rows, err := s.pool.Query(ctx,
 		`SELECT pair, amount_tier, buy_rate, sell_rate, mid_rate, spread, spread_pct, base_rate, source, captured_at
 		 FROM rate_snapshots
-		 WHERE pair = $1 AND amount_tier = 'aggregate' AND captured_at >= $2
+		 WHERE pair = $1 AND amount_tier = $2 AND captured_at >= $3
 		 ORDER BY captured_at DESC
-		 LIMIT $3 OFFSET $4`,
-		pair, since, limit, offset)
+		 LIMIT $4 OFFSET $5`,
+		pair, tier, since, limit, offset)
 	if err != nil {
 		return nil, err
 	}

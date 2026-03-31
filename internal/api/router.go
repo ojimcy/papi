@@ -15,17 +15,36 @@ func NewRouter(c *cache.Cache, s store.Store) http.Handler {
 	r.Use(middleware.Logger)
 	r.Use(middleware.Recoverer)
 	r.Use(middleware.RealIP)
+	r.Use(middleware.RequestID)
+	r.Use(requestIDToHeader)
 	r.Use(corsMiddleware)
 
 	auth := NewAuthMiddleware(s)
 	h := NewHandlers(c, s)
 
 	r.Get("/health", func(w http.ResponseWriter, r *http.Request) {
-		writeJSON(w, http.StatusOK, map[string]string{"status": "ok"})
+		status := "ok"
+		dbStatus := "ok"
+		code := http.StatusOK
+
+		if err := s.Ping(r.Context()); err != nil {
+			dbStatus = "unavailable"
+			status = "degraded"
+			code = http.StatusServiceUnavailable
+		}
+
+		writeJSON(w, code, map[string]string{
+			"status":   status,
+			"database": dbStatus,
+		})
 	})
+
+	rl := NewRateLimiter(10, 20) // 10 req/s, burst 20
 
 	r.Route("/v1", func(r chi.Router) {
 		r.Use(auth.Handler)
+		r.Use(rl.Handler)
+		r.Get("/pairs", h.GetPairs)
 		r.Get("/rates", h.GetRates)
 		r.Get("/rates/history", h.GetHistory)
 
@@ -37,6 +56,15 @@ func NewRouter(c *cache.Cache, s store.Store) http.Handler {
 	})
 
 	return r
+}
+
+func requestIDToHeader(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		if reqID := middleware.GetReqID(r.Context()); reqID != "" {
+			w.Header().Set("X-Request-Id", reqID)
+		}
+		next.ServeHTTP(w, r)
+	})
 }
 
 func corsMiddleware(next http.Handler) http.Handler {

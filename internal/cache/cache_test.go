@@ -34,6 +34,28 @@ func TestCache_Get_NotFound(t *testing.T) {
 	}
 }
 
+func TestCache_Pairs(t *testing.T) {
+	c := New()
+	c.Set("USDT_NGN", "aggregate", model.ComputedRate{})
+	c.Set("USDT_GHS", "aggregate", model.ComputedRate{})
+
+	pairs := c.Pairs()
+	if len(pairs) != 2 {
+		t.Errorf("expected 2 pairs, got %d", len(pairs))
+	}
+}
+
+func TestCache_Tiers(t *testing.T) {
+	c := New()
+	c.Set("USDT_NGN", "aggregate", model.ComputedRate{})
+	c.Set("USDT_NGN", "500000", model.ComputedRate{})
+
+	tiers := c.Tiers("USDT_NGN")
+	if len(tiers) != 2 {
+		t.Errorf("expected 2 tiers, got %d", len(tiers))
+	}
+}
+
 func TestCache_GetAll(t *testing.T) {
 	c := New()
 	c.Set("USDT_NGN", "50000", model.ComputedRate{BuyRate: 1416})

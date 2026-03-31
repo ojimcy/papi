@@ -38,11 +38,11 @@ type ComputedRate struct {
 }
 
 type Subscriber struct {
-	ID         string
-	Name       string
-	APIKey     string
-	WebhookURL string
-	IsActive   bool
+	ID         string `json:"id"`
+	Name       string `json:"name"`
+	APIKey     string `json:"api_key"`
+	WebhookURL string `json:"webhook_url,omitempty"`
+	IsActive   bool   `json:"is_active"`
 }
 
 var AmountTiers = []string{"50000", "500000", "5000000", "20000000"}

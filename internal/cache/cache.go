@@ -39,6 +39,32 @@ func (c *Cache) Get(pair, amountTier string) (model.ComputedRate, bool) {
 	return rate, ok
 }
 
+func (c *Cache) Pairs() []string {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+
+	pairs := make([]string, 0, len(c.rates))
+	for pair := range c.rates {
+		pairs = append(pairs, pair)
+	}
+	return pairs
+}
+
+func (c *Cache) Tiers(pair string) []string {
+	c.mu.RLock()
+	defer c.mu.RUnlock()
+
+	tiers, ok := c.rates[pair]
+	if !ok {
+		return nil
+	}
+	names := make([]string, 0, len(tiers))
+	for tier := range tiers {
+		names = append(names, tier)
+	}
+	return names
+}
+
 func (c *Cache) GetAll(pair string) []model.ComputedRate {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
