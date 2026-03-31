@@ -8,7 +8,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/zapi-api/zapi/internal/model"
+	"github.com/papi-api/papi/internal/model"
 )
 
 func TestDispatcher_ShouldNotify_BelowThreshold(t *testing.T) {

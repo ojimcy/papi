@@ -5,7 +5,7 @@ import (
 	"net/http"
 
 	"github.com/go-chi/chi/v5"
-	"github.com/zapi-api/zapi/internal/store"
+	"github.com/papi-api/papi/internal/store"
 )
 
 type SubscriberHandlers struct {

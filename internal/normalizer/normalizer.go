@@ -3,7 +3,7 @@ package normalizer
 import (
 	"sort"
 
-	"github.com/zapi-api/zapi/internal/model"
+	"github.com/papi-api/papi/internal/model"
 )
 
 const (

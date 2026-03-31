@@ -1,4 +1,4 @@
-module github.com/zapi-api/zapi
+module github.com/papi-api/papi
 
 go 1.25.4
 

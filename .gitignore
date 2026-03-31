@@ -1,5 +1,5 @@
 .env
-zapi
+papi
 *.exe
 *.test
 .DS_Store

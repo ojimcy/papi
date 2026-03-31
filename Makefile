@@ -1,4 +1,4 @@
-APP_NAME := zapi
+APP_NAME := papi
 DB_URL ?= $(shell grep DATABASE_URL .env 2>/dev/null | cut -d= -f2-)
 
 .PHONY: build run test clean migrate migrate-down dev docker docker-run
@@ -33,7 +33,7 @@ migrate-down:
 migrate-reset: migrate-down dev
 
 seed:
-	psql "$(DB_URL)" -c "INSERT INTO subscribers (name, api_key, is_admin) VALUES ('default', 'zapi-test-key-123', true) ON CONFLICT DO NOTHING;"
+	psql "$(DB_URL)" -c "INSERT INTO subscribers (name, api_key, is_admin) VALUES ('default', 'papi-test-key-123', true) ON CONFLICT DO NOTHING;"
 
 ## Docker
 

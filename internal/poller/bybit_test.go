@@ -7,7 +7,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/zapi-api/zapi/internal/model"
+	"github.com/papi-api/papi/internal/model"
 )
 
 func TestBybitFetcher_Fetch(t *testing.T) {

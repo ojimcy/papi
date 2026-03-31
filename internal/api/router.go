@@ -5,8 +5,8 @@ import (
 
 	"github.com/go-chi/chi/v5"
 	"github.com/go-chi/chi/v5/middleware"
-	"github.com/zapi-api/zapi/internal/cache"
-	"github.com/zapi-api/zapi/internal/store"
+	"github.com/papi-api/papi/internal/cache"
+	"github.com/papi-api/papi/internal/store"
 )
 
 func NewRouter(c *cache.Cache, s store.Store) http.Handler {

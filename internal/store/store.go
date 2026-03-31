@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/zapi-api/zapi/internal/model"
+	"github.com/papi-api/papi/internal/model"
 )
 
 type Store interface {

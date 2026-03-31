@@ -7,7 +7,7 @@ import (
 	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/zapi-api/zapi/internal/model"
+	"github.com/papi-api/papi/internal/model"
 )
 
 func generateAPIKey() string {

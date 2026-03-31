@@ -9,7 +9,7 @@ import (
 	"strconv"
 	"time"
 
-	"github.com/zapi-api/zapi/internal/model"
+	"github.com/papi-api/papi/internal/model"
 )
 
 type BybitRequest struct {
@@ -94,7 +94,7 @@ func (f *BybitFetcher) Fetch(ctx context.Context, pair string, side model.Side, 
 		return nil, fmt.Errorf("create request: %w", err)
 	}
 	req.Header.Set("Content-Type", "application/json")
-	req.Header.Set("User-Agent", "Mozilla/5.0 (compatible; Zapi/1.0)")
+	req.Header.Set("User-Agent", "Mozilla/5.0 (compatible; Papi/1.0)")
 
 	resp, err := f.client.Do(req)
 	if err != nil {

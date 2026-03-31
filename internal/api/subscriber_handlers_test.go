@@ -7,8 +7,8 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/zapi-api/zapi/internal/cache"
-	"github.com/zapi-api/zapi/internal/model"
+	"github.com/papi-api/papi/internal/cache"
+	"github.com/papi-api/papi/internal/model"
 )
 
 func TestSubscribers_AdminOnly(t *testing.T) {

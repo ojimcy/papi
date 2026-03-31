@@ -9,10 +9,10 @@ import (
 	"testing"
 	"time"
 
-	"github.com/zapi-api/zapi/internal/cache"
-	"github.com/zapi-api/zapi/internal/model"
-	"github.com/zapi-api/zapi/internal/store"
-	"github.com/zapi-api/zapi/internal/webhook"
+	"github.com/papi-api/papi/internal/cache"
+	"github.com/papi-api/papi/internal/model"
+	"github.com/papi-api/papi/internal/store"
+	"github.com/papi-api/papi/internal/webhook"
 )
 
 type mockFetcher struct {

@@ -3,7 +3,7 @@ package calculator
 import (
 	"time"
 
-	"github.com/zapi-api/zapi/internal/model"
+	"github.com/papi-api/papi/internal/model"
 )
 
 func VWAP(ads []model.Ad) float64 {

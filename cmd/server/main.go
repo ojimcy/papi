@@ -9,12 +9,12 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/zapi-api/zapi/internal/api"
-	"github.com/zapi-api/zapi/internal/cache"
-	"github.com/zapi-api/zapi/internal/config"
-	"github.com/zapi-api/zapi/internal/poller"
-	"github.com/zapi-api/zapi/internal/store"
-	"github.com/zapi-api/zapi/internal/webhook"
+	"github.com/papi-api/papi/internal/api"
+	"github.com/papi-api/papi/internal/cache"
+	"github.com/papi-api/papi/internal/config"
+	"github.com/papi-api/papi/internal/poller"
+	"github.com/papi-api/papi/internal/store"
+	"github.com/papi-api/papi/internal/webhook"
 )
 
 func main() {

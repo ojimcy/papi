@@ -3,7 +3,7 @@ package cache
 import (
 	"sync"
 
-	"github.com/zapi-api/zapi/internal/model"
+	"github.com/papi-api/papi/internal/model"
 )
 
 type Cache struct {

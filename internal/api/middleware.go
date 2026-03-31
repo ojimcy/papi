@@ -6,8 +6,8 @@ import (
 	"sync"
 	"time"
 
-	"github.com/zapi-api/zapi/internal/model"
-	"github.com/zapi-api/zapi/internal/store"
+	"github.com/papi-api/papi/internal/model"
+	"github.com/papi-api/papi/internal/store"
 )
 
 type cacheEntry struct {
