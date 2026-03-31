@@ -49,10 +49,13 @@ func NewRouter(c *cache.Cache, s store.Store) http.Handler {
 		r.Get("/rates/history", h.GetHistory)
 
 		sh := NewSubscriberHandlers(s)
-		r.Get("/subscribers", sh.List)
-		r.Post("/subscribers", sh.Create)
-		r.Put("/subscribers/{id}", sh.Update)
-		r.Delete("/subscribers/{id}", sh.Deactivate)
+		r.Route("/subscribers", func(r chi.Router) {
+			r.Use(adminOnly)
+			r.Get("/", sh.List)
+			r.Post("/", sh.Create)
+			r.Put("/{id}", sh.Update)
+			r.Delete("/{id}", sh.Deactivate)
+		})
 	})
 
 	return r

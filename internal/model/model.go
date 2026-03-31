@@ -43,6 +43,7 @@ type Subscriber struct {
 	APIKey     string `json:"api_key"`
 	WebhookURL string `json:"webhook_url,omitempty"`
 	IsActive   bool   `json:"is_active"`
+	IsAdmin    bool   `json:"is_admin"`
 }
 
 var AmountTiers = []string{"50000", "500000", "5000000", "20000000"}

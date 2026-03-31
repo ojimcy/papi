@@ -11,6 +11,7 @@ import (
 
 func TestRateLimiter_AllowsBurst(t *testing.T) {
 	rl := NewRateLimiter(10, 5)
+	defer rl.Close()
 	for i := 0; i < 5; i++ {
 		if !rl.allow("test-key") {
 			t.Errorf("request %d should be allowed within burst", i)
@@ -20,6 +21,7 @@ func TestRateLimiter_AllowsBurst(t *testing.T) {
 
 func TestRateLimiter_BlocksAfterBurst(t *testing.T) {
 	rl := NewRateLimiter(10, 3)
+	defer rl.Close()
 	for i := 0; i < 3; i++ {
 		rl.allow("test-key")
 	}
@@ -30,6 +32,7 @@ func TestRateLimiter_BlocksAfterBurst(t *testing.T) {
 
 func TestRateLimiter_IndependentKeys(t *testing.T) {
 	rl := NewRateLimiter(10, 2)
+	defer rl.Close()
 	rl.allow("key-a")
 	rl.allow("key-a")
 	// key-a exhausted
@@ -37,6 +40,11 @@ func TestRateLimiter_IndependentKeys(t *testing.T) {
 	if !rl.allow("key-b") {
 		t.Error("key-b should not be affected by key-a limits")
 	}
+}
+
+func TestRateLimiter_Close(t *testing.T) {
+	rl := NewRateLimiter(10, 5)
+	rl.Close() // should not panic or block
 }
 
 func TestRateLimiter_Returns429(t *testing.T) {

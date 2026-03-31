@@ -1,0 +1,501 @@
+openapi: 3.0.3
+info:
+  title: P2P Rates API
+  description: >
+    Aggregated peer-to-peer exchange rates. Provides real-time and historical
+    buy/sell rates across multiple currency pairs and amount tiers.
+  version: 1.0.0
+  contact:
+    name: API Support
+
+servers:
+  - url: /
+    description: Current host
+
+tags:
+  - name: Health
+    description: Service health checks
+  - name: Rates
+    description: Real-time and historical exchange rates
+  - name: Subscribers
+    description: Subscriber management (admin only)
+
+paths:
+  /health:
+    get:
+      tags: [Health]
+      summary: Health check
+      description: Returns the health status of the service and its dependencies.
+      operationId: getHealth
+      responses:
+        "200":
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Health"
+
+  /v1/pairs:
+    get:
+      tags: [Rates]
+      summary: List available currency pairs
+      description: Returns all supported currency pairs and their available amount tiers.
+      operationId: getPairs
+      security:
+        - ApiKeyAuth: []
+      responses:
+        "200":
+          description: List of currency pairs
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Pair"
+              example:
+                - pair: USDT_NGN
+                  tiers:
+                    - aggregate
+                    - "50000"
+                    - "500000"
+                    - "5000000"
+                    - "20000000"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+
+  /v1/rates:
+    get:
+      tags: [Rates]
+      summary: Get current rates
+      description: >
+        Returns the latest computed rates for a given currency pair.
+        Optionally filter by a specific amount to get the matching tier.
+      operationId: getRates
+      security:
+        - ApiKeyAuth: []
+      parameters:
+        - name: pair
+          in: query
+          required: true
+          description: "Currency pair (e.g. USDT_NGN)"
+          schema:
+            type: string
+            example: USDT_NGN
+        - name: amount
+          in: query
+          required: false
+          description: "Optional amount to select the appropriate tier"
+          schema:
+            type: number
+            format: double
+            example: 500000
+      responses:
+        "200":
+          description: Current computed rate
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ComputedRate"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+
+  /v1/rates/history:
+    get:
+      tags: [Rates]
+      summary: Get historical rates
+      description: Returns historical rate snapshots for a given pair, tier, and time period.
+      operationId: getRatesHistory
+      security:
+        - ApiKeyAuth: []
+      parameters:
+        - name: pair
+          in: query
+          required: true
+          description: "Currency pair (e.g. USDT_NGN)"
+          schema:
+            type: string
+            example: USDT_NGN
+        - name: period
+          in: query
+          required: false
+          description: "Time period to retrieve"
+          schema:
+            type: string
+            enum: [1h, 6h, 24h, 7d]
+            default: "24h"
+        - name: tier
+          in: query
+          required: false
+          description: "Amount tier to filter by"
+          schema:
+            type: string
+            default: aggregate
+            example: aggregate
+        - name: limit
+          in: query
+          required: false
+          description: "Maximum number of records to return (1-1000)"
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 1000
+            default: 100
+        - name: offset
+          in: query
+          required: false
+          description: "Number of records to skip for pagination"
+          schema:
+            type: integer
+            minimum: 0
+            default: 0
+      responses:
+        "200":
+          description: Historical rate data
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/HistoryResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+
+  /v1/subscribers:
+    get:
+      tags: [Subscribers]
+      summary: List subscribers
+      description: Returns all registered subscribers. Requires admin privileges.
+      operationId: listSubscribers
+      security:
+        - ApiKeyAuth: []
+      responses:
+        "200":
+          description: List of subscribers
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Subscriber"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+
+    post:
+      tags: [Subscribers]
+      summary: Create a subscriber
+      description: Registers a new subscriber. Requires admin privileges.
+      operationId: createSubscriber
+      security:
+        - ApiKeyAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SubscriberRequest"
+      responses:
+        "201":
+          description: Subscriber created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Subscriber"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+
+  /v1/subscribers/{id}:
+    put:
+      tags: [Subscribers]
+      summary: Update a subscriber
+      description: Updates an existing subscriber. Requires admin privileges.
+      operationId: updateSubscriber
+      security:
+        - ApiKeyAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Subscriber UUID
+          schema:
+            type: string
+            format: uuid
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SubscriberRequest"
+      responses:
+        "200":
+          description: Subscriber updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Subscriber"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+
+    delete:
+      tags: [Subscribers]
+      summary: Delete a subscriber
+      description: Removes a subscriber. Requires admin privileges.
+      operationId: deleteSubscriber
+      security:
+        - ApiKeyAuth: []
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Subscriber UUID
+          schema:
+            type: string
+            format: uuid
+      responses:
+        "204":
+          description: Subscriber deleted
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "429":
+          $ref: "#/components/responses/TooManyRequests"
+
+components:
+  securitySchemes:
+    ApiKeyAuth:
+      type: apiKey
+      in: header
+      name: X-API-Key
+      description: API key issued to each subscriber
+
+  schemas:
+    Health:
+      type: object
+      required: [status, database]
+      properties:
+        status:
+          type: string
+          example: ok
+        database:
+          type: string
+          example: ok
+
+    Pair:
+      type: object
+      required: [pair, tiers]
+      properties:
+        pair:
+          type: string
+          example: USDT_NGN
+        tiers:
+          type: array
+          items:
+            type: string
+          example: ["aggregate", "50000", "500000", "5000000", "20000000"]
+
+    ComputedRate:
+      type: object
+      required:
+        - pair
+        - amount_tier
+        - buy_rate
+        - sell_rate
+        - mid_rate
+        - spread
+        - spread_pct
+        - base_rate
+        - source
+        - timestamp
+        - stale
+      properties:
+        pair:
+          type: string
+          example: USDT_NGN
+        amount_tier:
+          type: string
+          example: aggregate
+        buy_rate:
+          type: number
+          format: double
+          example: 1416.0
+        sell_rate:
+          type: number
+          format: double
+          example: 1412.0
+        mid_rate:
+          type: number
+          format: double
+          example: 1414.0
+        spread:
+          type: number
+          format: double
+          example: 4.0
+        spread_pct:
+          type: number
+          format: double
+          example: 0.283
+        base_rate:
+          type: number
+          format: double
+          example: 1410.0
+        source:
+          type: string
+          example: bybit
+        timestamp:
+          type: string
+          format: date-time
+          example: "2026-03-31T12:00:00Z"
+        stale:
+          type: boolean
+          example: false
+
+    HistoryResponse:
+      type: object
+      required: [pair, tier, period, limit, offset, data]
+      properties:
+        pair:
+          type: string
+          example: USDT_NGN
+        tier:
+          type: string
+          example: aggregate
+        period:
+          type: string
+          example: "24h"
+        limit:
+          type: integer
+          example: 100
+        offset:
+          type: integer
+          example: 0
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/ComputedRate"
+
+    Subscriber:
+      type: object
+      required: [id, name, api_key, webhook_url, is_active, is_admin]
+      properties:
+        id:
+          type: string
+          format: uuid
+        name:
+          type: string
+          example: App Name
+        api_key:
+          type: string
+          description: Hex-encoded API key
+          example: a1b2c3d4e5f6
+        webhook_url:
+          type: string
+          format: uri
+          example: https://example.com/hook
+        is_active:
+          type: boolean
+          example: true
+        is_admin:
+          type: boolean
+          example: false
+
+    SubscriberRequest:
+      type: object
+      required: [name, webhook_url]
+      properties:
+        name:
+          type: string
+          example: App Name
+        webhook_url:
+          type: string
+          format: uri
+          example: https://example.com/hook
+
+    Error:
+      type: object
+      required: [error, code]
+      properties:
+        error:
+          type: string
+          example: invalid or missing API key
+        code:
+          type: integer
+          example: 400
+
+  responses:
+    BadRequest:
+      description: Bad request
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+          example:
+            error: "missing required query parameter: pair"
+            code: 400
+
+    Unauthorized:
+      description: Missing or invalid API key
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+          example:
+            error: invalid or missing API key
+            code: 401
+
+    Forbidden:
+      description: Insufficient privileges (admin required)
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+          example:
+            error: admin access required
+            code: 403
+
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+          example:
+            error: subscriber not found
+            code: 404
+
+    TooManyRequests:
+      description: Rate limit exceeded (10 req/s per key, burst 20)
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/Error"
+          example:
+            error: rate limit exceeded
+            code: 429

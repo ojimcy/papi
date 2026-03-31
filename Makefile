@@ -25,15 +25,15 @@ test-v:
 ## Database
 
 migrate:
-	psql "$(DB_URL)" -f migrations/001_initial.sql
+	@echo "Migrations run automatically on server start. Use 'make dev' or 'make run'."
 
 migrate-down:
-	psql "$(DB_URL)" -c "DROP TABLE IF EXISTS rate_snapshots, subscribers CASCADE;"
+	psql "$(DB_URL)" -c "DROP TABLE IF EXISTS rate_snapshots, subscribers, schema_migrations CASCADE;"
 
-migrate-reset: migrate-down migrate
+migrate-reset: migrate-down dev
 
 seed:
-	psql "$(DB_URL)" -c "INSERT INTO subscribers (name, api_key) VALUES ('default', 'zapi-test-key-123') ON CONFLICT DO NOTHING;"
+	psql "$(DB_URL)" -c "INSERT INTO subscribers (name, api_key, is_admin) VALUES ('default', 'zapi-test-key-123', true) ON CONFLICT DO NOTHING;"
 
 ## Docker
 

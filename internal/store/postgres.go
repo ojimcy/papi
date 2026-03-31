@@ -32,6 +32,10 @@ func NewPostgresStore(ctx context.Context, databaseURL string) (*PostgresStore, 
 	return &PostgresStore{pool: pool}, nil
 }
 
+func (s *PostgresStore) Pool() *pgxpool.Pool {
+	return s.pool
+}
+
 func (s *PostgresStore) Ping(ctx context.Context) error {
 	return s.pool.Ping(ctx)
 }
@@ -79,7 +83,7 @@ func (s *PostgresStore) GetHistory(ctx context.Context, pair string, since time.
 
 func (s *PostgresStore) GetSubscribers(ctx context.Context) ([]model.Subscriber, error) {
 	rows, err := s.pool.Query(ctx,
-		`SELECT id, name, api_key, webhook_url, is_active FROM subscribers WHERE is_active = true`)
+		`SELECT id, name, api_key, webhook_url, is_active, is_admin FROM subscribers WHERE is_active = true`)
 	if err != nil {
 		return nil, err
 	}
@@ -89,7 +93,7 @@ func (s *PostgresStore) GetSubscribers(ctx context.Context) ([]model.Subscriber,
 	for rows.Next() {
 		var sub model.Subscriber
 		var webhookURL *string
-		err := rows.Scan(&sub.ID, &sub.Name, &sub.APIKey, &webhookURL, &sub.IsActive)
+		err := rows.Scan(&sub.ID, &sub.Name, &sub.APIKey, &webhookURL, &sub.IsActive, &sub.IsAdmin)
 		if err != nil {
 			return nil, err
 		}
@@ -105,8 +109,8 @@ func (s *PostgresStore) GetSubscriberByKey(ctx context.Context, apiKey string) (
 	var sub model.Subscriber
 	var webhookURL *string
 	err := s.pool.QueryRow(ctx,
-		`SELECT id, name, api_key, webhook_url, is_active FROM subscribers WHERE api_key = $1 AND is_active = true`,
-		apiKey).Scan(&sub.ID, &sub.Name, &sub.APIKey, &webhookURL, &sub.IsActive)
+		`SELECT id, name, api_key, webhook_url, is_active, is_admin FROM subscribers WHERE api_key = $1 AND is_active = true`,
+		apiKey).Scan(&sub.ID, &sub.Name, &sub.APIKey, &webhookURL, &sub.IsActive, &sub.IsAdmin)
 	if err != nil {
 		return nil, err
 	}
@@ -123,8 +127,8 @@ func (s *PostgresStore) CreateSubscriber(ctx context.Context, name, webhookURL s
 	err := s.pool.QueryRow(ctx,
 		`INSERT INTO subscribers (name, api_key, webhook_url, is_active)
 		 VALUES ($1, $2, $3, true)
-		 RETURNING id, name, api_key, webhook_url, is_active`,
-		name, apiKey, webhookURL).Scan(&sub.ID, &sub.Name, &sub.APIKey, &whURL, &sub.IsActive)
+		 RETURNING id, name, api_key, webhook_url, is_active, is_admin`,
+		name, apiKey, webhookURL).Scan(&sub.ID, &sub.Name, &sub.APIKey, &whURL, &sub.IsActive, &sub.IsAdmin)
 	if err != nil {
 		return nil, err
 	}

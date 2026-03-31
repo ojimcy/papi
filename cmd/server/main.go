@@ -36,6 +36,11 @@ func main() {
 	}
 	defer db.Close()
 
+	if err := store.Migrate(ctx, db.Pool(), "migrations"); err != nil {
+		slog.Error("failed to run migrations", "error", err)
+		os.Exit(1)
+	}
+
 	rateCache := cache.New()
 
 	httpClient := &http.Client{Timeout: 10 * time.Second}

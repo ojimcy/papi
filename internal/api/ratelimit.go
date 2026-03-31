@@ -16,6 +16,7 @@ type RateLimiter struct {
 	visitors map[string]*visitor
 	rate     float64 // tokens per second
 	burst    int     // max tokens
+	stop     chan struct{}
 }
 
 func NewRateLimiter(requestsPerSecond float64, burst int) *RateLimiter {
@@ -23,21 +24,32 @@ func NewRateLimiter(requestsPerSecond float64, burst int) *RateLimiter {
 		visitors: make(map[string]*visitor),
 		rate:     requestsPerSecond,
 		burst:    burst,
+		stop:     make(chan struct{}),
 	}
 	go rl.cleanup()
 	return rl
 }
 
+func (rl *RateLimiter) Close() {
+	close(rl.stop)
+}
+
 func (rl *RateLimiter) cleanup() {
+	ticker := time.NewTicker(time.Minute)
+	defer ticker.Stop()
 	for {
-		time.Sleep(time.Minute)
-		rl.mu.Lock()
-		for key, v := range rl.visitors {
-			if time.Since(v.lastSeen) > 3*time.Minute {
-				delete(rl.visitors, key)
+		select {
+		case <-rl.stop:
+			return
+		case <-ticker.C:
+			rl.mu.Lock()
+			for key, v := range rl.visitors {
+				if time.Since(v.lastSeen) > 3*time.Minute {
+					delete(rl.visitors, key)
+				}
 			}
+			rl.mu.Unlock()
 		}
-		rl.mu.Unlock()
 	}
 }
 
