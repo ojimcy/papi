@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"net/http"
 	"strconv"
+	"strings"
 	"time"
 
 	"github.com/zapi-api/zapi/internal/cache"
@@ -25,6 +26,10 @@ func (h *Handlers) GetRates(w http.ResponseWriter, r *http.Request) {
 	pair := r.URL.Query().Get("pair")
 	if pair == "" {
 		writeError(w, http.StatusBadRequest, "missing pair parameter")
+		return
+	}
+	if !validPair(pair) {
+		writeError(w, http.StatusBadRequest, "invalid pair format: expected TOKEN_CURRENCY (e.g. USDT_NGN)")
 		return
 	}
 
@@ -49,6 +54,10 @@ func (h *Handlers) GetHistory(w http.ResponseWriter, r *http.Request) {
 		writeError(w, http.StatusBadRequest, "missing pair parameter")
 		return
 	}
+	if !validPair(pair) {
+		writeError(w, http.StatusBadRequest, "invalid pair format: expected TOKEN_CURRENCY (e.g. USDT_NGN)")
+		return
+	}
 
 	period := r.URL.Query().Get("period")
 	if period == "" {
@@ -61,13 +70,32 @@ func (h *Handlers) GetHistory(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	since := time.Now().Add(-duration)
-	interval := "minute"
-	if period == "7d" {
-		interval = "hour"
+	limit := 100
+	if v := r.URL.Query().Get("limit"); v != "" {
+		l, err := strconv.Atoi(v)
+		if err != nil || l < 1 {
+			writeError(w, http.StatusBadRequest, "invalid limit: must be a positive integer")
+			return
+		}
+		if l > 1000 {
+			l = 1000
+		}
+		limit = l
 	}
 
-	rates, err := h.store.GetHistory(r.Context(), pair, since, interval)
+	offset := 0
+	if v := r.URL.Query().Get("offset"); v != "" {
+		o, err := strconv.Atoi(v)
+		if err != nil || o < 0 {
+			writeError(w, http.StatusBadRequest, "invalid offset: must be a non-negative integer")
+			return
+		}
+		offset = o
+	}
+
+	since := time.Now().Add(-duration)
+
+	rates, err := h.store.GetHistory(r.Context(), pair, since, limit, offset)
 	if err != nil {
 		writeError(w, http.StatusInternalServerError, "failed to fetch history")
 		return
@@ -76,6 +104,8 @@ func (h *Handlers) GetHistory(w http.ResponseWriter, r *http.Request) {
 	writeJSON(w, http.StatusOK, map[string]any{
 		"pair":   pair,
 		"period": period,
+		"limit":  limit,
+		"offset": offset,
 		"data":   rates,
 	})
 }
@@ -121,6 +151,11 @@ func parsePeriod(period string) (time.Duration, error) {
 	default:
 		return 0, fmt.Errorf("unsupported period: %s", period)
 	}
+}
+
+func validPair(pair string) bool {
+	parts := strings.SplitN(pair, "_", 2)
+	return len(parts) == 2 && len(parts[0]) >= 2 && len(parts[1]) >= 2
 }
 
 func writeJSON(w http.ResponseWriter, status int, data any) {

@@ -3,6 +3,7 @@ package config
 import (
 	"fmt"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/joho/godotenv"
@@ -15,6 +16,7 @@ type Config struct {
 	WebhookThreshold float64
 	BybitBaseURL     string
 	LogLevel         string
+	Pairs            []string
 }
 
 func Load() (*Config, error) {
@@ -33,6 +35,15 @@ func Load() (*Config, error) {
 		}
 	}
 
+	pairs := getEnv("PAIRS", "USDT_NGN")
+	var pairList []string
+	for _, p := range strings.Split(pairs, ",") {
+		p = strings.TrimSpace(p)
+		if p != "" {
+			pairList = append(pairList, p)
+		}
+	}
+
 	return &Config{
 		Port:             getEnv("PORT", "8080"),
 		DatabaseURL:      getEnv("DATABASE_URL", "postgres://localhost:5432/p2p_rates?sslmode=disable"),
@@ -40,6 +51,7 @@ func Load() (*Config, error) {
 		WebhookThreshold: threshold,
 		BybitBaseURL:     getEnv("BYBIT_BASE_URL", "https://api2.bybit.com"),
 		LogLevel:         getEnv("LOG_LEVEL", "info"),
+		Pairs:            pairList,
 	}, nil
 }
 

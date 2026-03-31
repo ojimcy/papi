@@ -73,6 +73,31 @@ func TestLoad_InvalidPollInterval(t *testing.T) {
 	}
 }
 
+func TestLoad_Pairs(t *testing.T) {
+	os.Setenv("PAIRS", "USDT_NGN,USDT_GHS")
+	defer os.Unsetenv("PAIRS")
+
+	cfg, err := Load()
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(cfg.Pairs) != 2 || cfg.Pairs[0] != "USDT_NGN" || cfg.Pairs[1] != "USDT_GHS" {
+		t.Errorf("expected [USDT_NGN, USDT_GHS], got %v", cfg.Pairs)
+	}
+}
+
+func TestLoad_PairsDefault(t *testing.T) {
+	os.Unsetenv("PAIRS")
+
+	cfg, err := Load()
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
+	if len(cfg.Pairs) != 1 || cfg.Pairs[0] != "USDT_NGN" {
+		t.Errorf("expected [USDT_NGN], got %v", cfg.Pairs)
+	}
+}
+
 func TestLoad_InvalidThresholdIgnored(t *testing.T) {
 	os.Clearenv()
 	t.Setenv("WEBHOOK_THRESHOLD", "notanumber")

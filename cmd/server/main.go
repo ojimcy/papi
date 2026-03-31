@@ -44,8 +44,10 @@ func main() {
 	webhookClient := &http.Client{Timeout: 5 * time.Second}
 	dispatcher := webhook.New(cfg.WebhookThreshold, webhookClient)
 
-	p := poller.NewPoller(fetcher, db, rateCache, dispatcher, "USDT_NGN")
-	go p.Start(ctx, cfg.PollInterval)
+	for _, pair := range cfg.Pairs {
+		p := poller.NewPoller(fetcher, db, rateCache, dispatcher, pair)
+		go p.Start(ctx, cfg.PollInterval)
+	}
 
 	router := api.NewRouter(rateCache, db)
 	server := &http.Server{

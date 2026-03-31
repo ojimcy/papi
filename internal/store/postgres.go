@@ -2,11 +2,19 @@ package store
 
 import (
 	"context"
+	"crypto/rand"
+	"encoding/hex"
 	"time"
 
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/zapi-api/zapi/internal/model"
 )
+
+func generateAPIKey() string {
+	b := make([]byte, 32)
+	rand.Read(b)
+	return hex.EncodeToString(b)
+}
 
 type PostgresStore struct {
 	pool *pgxpool.Pool
@@ -39,13 +47,14 @@ func (s *PostgresStore) SaveRate(ctx context.Context, rate model.ComputedRate) e
 	return err
 }
 
-func (s *PostgresStore) GetHistory(ctx context.Context, pair string, since time.Time, interval string) ([]model.ComputedRate, error) {
+func (s *PostgresStore) GetHistory(ctx context.Context, pair string, since time.Time, limit, offset int) ([]model.ComputedRate, error) {
 	rows, err := s.pool.Query(ctx,
 		`SELECT pair, amount_tier, buy_rate, sell_rate, mid_rate, spread, spread_pct, base_rate, source, captured_at
 		 FROM rate_snapshots
 		 WHERE pair = $1 AND amount_tier = 'aggregate' AND captured_at >= $2
-		 ORDER BY captured_at ASC`,
-		pair, since)
+		 ORDER BY captured_at DESC
+		 LIMIT $3 OFFSET $4`,
+		pair, since, limit, offset)
 	if err != nil {
 		return nil, err
 	}
@@ -101,4 +110,36 @@ func (s *PostgresStore) GetSubscriberByKey(ctx context.Context, apiKey string) (
 		sub.WebhookURL = *webhookURL
 	}
 	return &sub, nil
+}
+
+func (s *PostgresStore) CreateSubscriber(ctx context.Context, name, webhookURL string) (*model.Subscriber, error) {
+	apiKey := generateAPIKey()
+	var sub model.Subscriber
+	var whURL *string
+	err := s.pool.QueryRow(ctx,
+		`INSERT INTO subscribers (name, api_key, webhook_url, is_active)
+		 VALUES ($1, $2, $3, true)
+		 RETURNING id, name, api_key, webhook_url, is_active`,
+		name, apiKey, webhookURL).Scan(&sub.ID, &sub.Name, &sub.APIKey, &whURL, &sub.IsActive)
+	if err != nil {
+		return nil, err
+	}
+	if whURL != nil {
+		sub.WebhookURL = *whURL
+	}
+	return &sub, nil
+}
+
+func (s *PostgresStore) UpdateSubscriber(ctx context.Context, id string, name, webhookURL string) error {
+	_, err := s.pool.Exec(ctx,
+		`UPDATE subscribers SET name = $1, webhook_url = $2 WHERE id = $3 AND is_active = true`,
+		name, webhookURL, id)
+	return err
+}
+
+func (s *PostgresStore) DeactivateSubscriber(ctx context.Context, id string) error {
+	_, err := s.pool.Exec(ctx,
+		`UPDATE subscribers SET is_active = false WHERE id = $1`,
+		id)
+	return err
 }

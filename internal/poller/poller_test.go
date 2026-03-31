@@ -38,7 +38,7 @@ func (m *mockStore) SaveRate(_ context.Context, rate model.ComputedRate) error {
 	m.saved = append(m.saved, rate)
 	return nil
 }
-func (m *mockStore) GetHistory(_ context.Context, _ string, _ time.Time, _ string) ([]model.ComputedRate, error) {
+func (m *mockStore) GetHistory(_ context.Context, _ string, _ time.Time, _, _ int) ([]model.ComputedRate, error) {
 	return nil, nil
 }
 func (m *mockStore) GetSubscribers(_ context.Context) ([]model.Subscriber, error) {
@@ -47,7 +47,14 @@ func (m *mockStore) GetSubscribers(_ context.Context) ([]model.Subscriber, error
 func (m *mockStore) GetSubscriberByKey(_ context.Context, _ string) (*model.Subscriber, error) {
 	return nil, nil
 }
-func (m *mockStore) Close() error { return nil }
+func (m *mockStore) CreateSubscriber(_ context.Context, _ string, _ string) (*model.Subscriber, error) {
+	return nil, nil
+}
+func (m *mockStore) UpdateSubscriber(_ context.Context, _ string, _ string, _ string) error {
+	return nil
+}
+func (m *mockStore) DeactivateSubscriber(_ context.Context, _ string) error { return nil }
+func (m *mockStore) Close() error                                           { return nil }
 
 var _ store.Store = (*mockStore)(nil)
 
